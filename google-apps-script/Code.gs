@@ -1,29 +1,38 @@
 const SHEET_NAME = "Users";
 
 function doGet(e) {
+  return handleRequest_(e.parameter);
+}
+
+function doPost(e) {
+  return handleRequest_(e.parameter);
+}
+
+function handleRequest_(data) {
   try {
-    const action = (e.parameter.action || "").trim();
+    const action = (data.action || "").trim();
+    const origin = String(data.origin || "").trim();
     let result;
 
     if (!action) {
       result = { ok: false, message: "Missing action" };
-      return response_(result, e.parameter.callback);
+      return response_(result, data.callback, origin);
     }
 
     if (action === "signup") {
-      result = signup_(e.parameter);
-      return response_(result, e.parameter.callback);
+      result = signup_(data);
+      return response_(result, data.callback, origin);
     }
 
     if (action === "login") {
-      result = login_(e.parameter);
-      return response_(result, e.parameter.callback);
+      result = login_(data);
+      return response_(result, data.callback, origin);
     }
 
     result = { ok: false, message: "Unknown action" };
-    return response_(result, e.parameter.callback);
+    return response_(result, data.callback, origin);
   } catch (err) {
-    return response_({ ok: false, message: err.message || "Server error" }, e.parameter.callback);
+    return response_({ ok: false, message: err.message || "Server error" }, data.callback, String(data.origin || "").trim());
   }
 }
 
@@ -91,7 +100,13 @@ function getSheet_() {
   return sheet;
 }
 
-function response_(obj, callback) {
+function response_(obj, callback, origin) {
+  const targetOrigin = String(origin || "").trim();
+
+  if (targetOrigin) {
+    return HtmlService.createHtmlOutput(bridgeHtml_(obj, targetOrigin));
+  }
+
   const cb = String(callback || "").trim();
 
   if (cb && /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(cb)) {
@@ -100,4 +115,18 @@ function response_(obj, callback) {
   }
 
   return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
+}
+
+function bridgeHtml_(obj, origin) {
+  const payload = JSON.stringify(obj).replace(/</g, "\\u003c");
+  const safeOrigin = JSON.stringify(origin);
+
+  return "<!doctype html><html><head><meta charset=\"utf-8\"><title>Result</title></head><body><script>" +
+    "(function(){" +
+    "var result = " + payload + ";" +
+    "var origin = " + safeOrigin + ";" +
+    "if (window.opener) { window.opener.postMessage({type:'apps-script-auth-result', payload: result}, origin); }" +
+    "setTimeout(function(){ window.close(); }, 250);" +
+    "})();" +
+    "</script></body></html>";
 }
