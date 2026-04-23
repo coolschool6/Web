@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Auth to Google Sheets</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="card">
+        <h1>Account Portal</h1>
+        <p class="sub">Sign up or log in. Data is saved in Google Sheets via Apps Script.</p>
+
+        <div class="tabs" role="tablist" aria-label="Auth tabs">
+          <button class="tab active" data-tab="signup" role="tab" aria-selected="true">Sign Up</button>
+          <button class="tab" data-tab="login" role="tab" aria-selected="false">Log In</button>
+        </div>
+
+        <form id="signupForm" class="panel active" autocomplete="on">
+          <label>
+            Full name
+            <input type="text" name="name" required minlength="2" />
+          </label>
+          <label>
+            Email
+            <input type="email" name="email" required />
+          </label>
+          <label>
+            Password
+            <input type="password" name="password" required minlength="6" />
+          </label>
+          <button type="submit">Create account</button>
+        </form>
+
+        <form id="loginForm" class="panel" autocomplete="on">
+          <label>
+            Email
+            <input type="email" name="email" required />
+          </label>
+          <label>
+            Password
+            <input type="password" name="password" required minlength="6" />
+          </label>
+          <button type="submit">Log in</button>
+        </form>
+
+        <p id="status" class="status" aria-live="polite"></p>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
