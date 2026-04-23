@@ -1,8 +1,8 @@
-<<<<<<< HEAD
 # Web
-website
-=======
-# Login/Sign Up with Google Sheets (via GitHub)
+
+Website
+
+## Login/Sign Up with Google Sheets (via GitHub)
 
 This project gives you:
 - A simple sign up / log in page using HTML, CSS, JavaScript
@@ -73,4 +73,3 @@ This is a beginner demo. For production:
 - Do not do authentication only in frontend JS.
 - Use a real backend and secure auth (JWT/session + strong password hashing with salt server-side).
 - Protect endpoints with proper access controls.
->>>>>>> fae25dc (Initial auth page with Google Sheets backend)
