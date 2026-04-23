@@ -98,86 +98,45 @@ function isConfigured() {
 
 async function callApi(payload) {
   try {
-    return await callApiBridge(payload);
+    return await callApiJsonp(payload);
   } catch (error) {
     return { ok: false, message: error.message || "Network error" };
   }
 }
 
-function callApiBridge(payload) {
+function callApiJsonp(payload) {
   return new Promise((resolve) => {
-    const bridgeName = "appsScriptBridge";
-    const bridgeWindow = window.open("", bridgeName, "width=520,height=640");
-
-    if (!bridgeWindow) {
-      resolve({ ok: false, message: "Popup blocked. Allow popups and try again." });
-      return;
-    }
-
-    const form = document.createElement("form");
-    form.method = "POST";
-    form.action = SCRIPT_URL;
-    form.target = bridgeName;
-    form.style.display = "none";
-
-    const fields = {
-      ...payload,
-      origin: window.location.origin,
-      responseMode: "bridge",
-    };
-
-    for (const [key, value] of Object.entries(fields)) {
-      const input = document.createElement("input");
-      input.type = "hidden";
-      input.name = key;
-      input.value = String(value);
-      form.appendChild(input);
-    }
-
-    document.body.appendChild(form);
+    const callbackName = `cb_${Date.now()}_${Math.floor(Math.random() * 1e6)}`;
+    const params = new URLSearchParams({ ...payload, callback: callbackName });
+    const url = `${SCRIPT_URL}?${params.toString()}`;
+    const script = document.createElement("script");
 
     const cleanup = () => {
-      window.removeEventListener("message", onMessage);
-      clearTimeout(timeout);
-      form.remove();
-    };
-
-    const onMessage = (event) => {
-      const allowedOrigins = new Set(["https://script.google.com", "https://script.googleusercontent.com"]);
-
-      if (!allowedOrigins.has(event.origin)) {
-        return;
+      if (script.parentNode) {
+        script.parentNode.removeChild(script);
       }
-
-      const data = event.data;
-
-      if (!data || data.type !== "apps-script-auth-result") {
-        return;
-      }
-
-      cleanup();
-      resolve(data.payload || { ok: false, message: "Empty response" });
-
-      try {
-        bridgeWindow.close();
-      } catch {
-        // ignore
-      }
+      delete window[callbackName];
     };
 
     const timeout = setTimeout(() => {
       cleanup();
       resolve({ ok: false, message: "Request timed out" });
+    }, 10000);
 
-      try {
-        bridgeWindow.close();
-      } catch {
-        // ignore
-      }
-    }, 15000);
+    window[callbackName] = (data) => {
+      clearTimeout(timeout);
+      cleanup();
+      resolve(data || { ok: false, message: "Empty response" });
+    };
 
-    window.addEventListener("message", onMessage);
-    form.submit();
+    script.onerror = () => {
+      clearTimeout(timeout);
+      cleanup();
+      resolve({ ok: false, message: "Failed to fetch from Apps Script" });
+    };
+
+    script.src = url;
+    document.body.appendChild(script);
   });
 }
 
