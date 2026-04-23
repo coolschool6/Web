@@ -24,13 +24,12 @@ signupForm.addEventListener("submit", async (event) => {
   if (!isConfigured()) return;
 
   showStatus("Creating account...", true);
-  const passwordHash = await sha256(password);
 
   const result = await callApi({
     action: "signup",
     name,
     email,
-    passwordHash,
+    password,
   });
 
   if (result.ok) {
@@ -56,12 +55,11 @@ loginForm.addEventListener("submit", async (event) => {
   if (!isConfigured()) return;
 
   showStatus("Checking credentials...", true);
-  const passwordHash = await sha256(password);
 
   const result = await callApi({
     action: "login",
     email,
-    passwordHash,
+    password,
   });
 
   if (result.ok) {
@@ -142,9 +140,3 @@ function callApiJsonp(payload) {
   });
 }
 
-async function sha256(input) {
-  const bytes = new TextEncoder().encode(input);
-  const hashBuffer = await crypto.subtle.digest("SHA-256", bytes);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
-}

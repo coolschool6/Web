@@ -30,9 +30,9 @@ function doGet(e) {
 function signup_(data) {
   const name = String(data.name || "").trim();
   const email = String(data.email || "").trim().toLowerCase();
-  const passwordHash = String(data.passwordHash || "").trim();
+  const password = String(data.password || "").trim();
 
-  if (!name || !email || !passwordHash) {
+  if (!name || !email || !password) {
     return { ok: false, message: "Missing fields" };
   }
 
@@ -45,15 +45,15 @@ function signup_(data) {
     }
   }
 
-  sheet.appendRow([new Date(), email, name, passwordHash]);
+  sheet.appendRow([new Date(), email, name, password]);
   return { ok: true, message: "Account created" };
 }
 
 function login_(data) {
   const email = String(data.email || "").trim().toLowerCase();
-  const passwordHash = String(data.passwordHash || "").trim();
+  const password = String(data.password || "").trim();
 
-  if (!email || !passwordHash) {
+  if (!email || !password) {
     return { ok: false, message: "Missing fields" };
   }
 
@@ -63,9 +63,9 @@ function login_(data) {
   for (let i = 1; i < values.length; i++) {
     const rowEmail = String(values[i][1]).toLowerCase();
     const rowName = String(values[i][2] || "");
-    const rowHash = String(values[i][3] || "");
+    const rowPassword = String(values[i][3] || "");
 
-    if (rowEmail === email && rowHash === passwordHash) {
+    if (rowEmail === email && rowPassword === password) {
       return { ok: true, name: rowName, message: "Login successful" };
     }
   }
@@ -79,7 +79,13 @@ function getSheet_() {
 
   if (!sheet) {
     sheet = ss.insertSheet(SHEET_NAME);
-    sheet.appendRow(["createdAt", "email", "name", "passwordHash"]);
+    sheet.appendRow(["createdAt", "email", "name", "password"]);
+  } else {
+    const header = String(sheet.getRange(1, 4).getValue() || "").trim();
+
+    if (header === "passwordHash") {
+      sheet.getRange(1, 4).setValue("password");
+    }
   }
 
   return sheet;
