@@ -100,18 +100,46 @@ function isConfigured() {
 
 async function callApi(payload) {
   try {
-    const params = new URLSearchParams(payload);
-    const url = `${SCRIPT_URL}?${params.toString()}`;
-    const response = await fetch(url, { method: "GET" });
-
-    if (!response.ok) {
-      return { ok: false, message: `HTTP error ${response.status}` };
-    }
-
-    return await response.json();
+    return await callApiJsonp(payload);
   } catch (error) {
     return { ok: false, message: error.message || "Network error" };
   }
+}
+
+function callApiJsonp(payload) {
+  return new Promise((resolve) => {
+    const callbackName = `cb_${Date.now()}_${Math.floor(Math.random() * 1e6)}`;
+    const params = new URLSearchParams({ ...payload, callback: callbackName });
+    const url = `${SCRIPT_URL}?${params.toString()}`;
+    const script = document.createElement("script");
+
+    const cleanup = () => {
+      if (script.parentNode) {
+        script.parentNode.removeChild(script);
+      }
+      delete window[callbackName];
+    };
+
+    const timeout = setTimeout(() => {
+      cleanup();
+      resolve({ ok: false, message: "Request timed out" });
+    }, 10000);
+
+    window[callbackName] = (data) => {
+      clearTimeout(timeout);
+      cleanup();
+      resolve(data || { ok: false, message: "Empty response" });
+    };
+
+    script.onerror = () => {
+      clearTimeout(timeout);
+      cleanup();
+      resolve({ ok: false, message: "Failed to fetch from Apps Script" });
+    };
+
+    script.src = url;
+    document.body.appendChild(script);
+  });
 }
 
 async function sha256(input) {

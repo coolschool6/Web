@@ -3,22 +3,27 @@ const SHEET_NAME = "Users";
 function doGet(e) {
   try {
     const action = (e.parameter.action || "").trim();
+    let result;
 
     if (!action) {
-      return json({ ok: false, message: "Missing action" });
+      result = { ok: false, message: "Missing action" };
+      return response_(result, e.parameter.callback);
     }
 
     if (action === "signup") {
-      return signup_(e.parameter);
+      result = signup_(e.parameter);
+      return response_(result, e.parameter.callback);
     }
 
     if (action === "login") {
-      return login_(e.parameter);
+      result = login_(e.parameter);
+      return response_(result, e.parameter.callback);
     }
 
-    return json({ ok: false, message: "Unknown action" });
+    result = { ok: false, message: "Unknown action" };
+    return response_(result, e.parameter.callback);
   } catch (err) {
-    return json({ ok: false, message: err.message || "Server error" });
+    return response_({ ok: false, message: err.message || "Server error" }, e.parameter.callback);
   }
 }
 
@@ -28,7 +33,7 @@ function signup_(data) {
   const passwordHash = String(data.passwordHash || "").trim();
 
   if (!name || !email || !passwordHash) {
-    return json({ ok: false, message: "Missing fields" });
+    return { ok: false, message: "Missing fields" };
   }
 
   const sheet = getSheet_();
@@ -36,12 +41,12 @@ function signup_(data) {
 
   for (let i = 1; i < values.length; i++) {
     if (String(values[i][1]).toLowerCase() === email) {
-      return json({ ok: false, message: "Email already exists" });
+      return { ok: false, message: "Email already exists" };
     }
   }
 
   sheet.appendRow([new Date(), email, name, passwordHash]);
-  return json({ ok: true, message: "Account created" });
+  return { ok: true, message: "Account created" };
 }
 
 function login_(data) {
@@ -49,7 +54,7 @@ function login_(data) {
   const passwordHash = String(data.passwordHash || "").trim();
 
   if (!email || !passwordHash) {
-    return json({ ok: false, message: "Missing fields" });
+    return { ok: false, message: "Missing fields" };
   }
 
   const sheet = getSheet_();
@@ -61,11 +66,11 @@ function login_(data) {
     const rowHash = String(values[i][3] || "");
 
     if (rowEmail === email && rowHash === passwordHash) {
-      return json({ ok: true, name: rowName, message: "Login successful" });
+      return { ok: true, name: rowName, message: "Login successful" };
     }
   }
 
-  return json({ ok: false, message: "Invalid email or password" });
+  return { ok: false, message: "Invalid email or password" };
 }
 
 function getSheet_() {
@@ -80,8 +85,13 @@ function getSheet_() {
   return sheet;
 }
 
-function json(obj) {
-  return ContentService
-    .createTextOutput(JSON.stringify(obj))
-    .setMimeType(ContentService.MimeType.JSON);
+function response_(obj, callback) {
+  const cb = String(callback || "").trim();
+
+  if (cb && /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(cb)) {
+    const body = cb + "(" + JSON.stringify(obj) + ");";
+    return ContentService.createTextOutput(body).setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
+
+  return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
 }
